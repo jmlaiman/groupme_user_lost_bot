@@ -88,25 +88,25 @@ class MessagesCollector():
         db.commit()
         
         #get columns from interact table
-        tb = cursor.execute('SELECT * from interact;')
-        cols = next(zip(*tb.description))
+        #tb = cursor.execute('SELECT * from interact;')
+        #cols = next(zip(*tb.description))
 
         #iterate through each user in the users table and add to interact table if they don't exist
-        for u in cursor.execute("SELECT id FROM users;"):
-            currentuser = u[0]
-            user_interact = u[0] + '_interaction'
-            #user_interact_time = u[0] + '_time'
-            #if a user that is not in the table, add to interact table
-            if not user_interact in cols:
-                cursor.execute('''ALTER TABLE interact ADD COLUMN {} TEXT'''.format(user_interact))
-        db.commit()
+        #for u in cursor.execute("SELECT id FROM users;"):
+        #    currentuser = u[0]
+        #    user_interact = u[0] + '_interaction'
+        #    #user_interact_time = u[0] + '_time'
+        #    #if a user that is not in the table, add to interact table
+        #    if not user_interact in cols:
+        #        cursor.execute('''ALTER TABLE interact ADD COLUMN {} TEXT'''.format(user_interact))
+        #db.commit()
         
-        tb = cursor.execute('SELECT * from interact;')
-        cols = next(zip(*tb.description))
-        print(cols)
-        cursor.execute('''INSERT OR IGNORE INTO interact(?,?,?,?)
-                          VALUES(?,?,?,?);''', (cols[0],cols[1],cols[2],cols[3],'time',0,0,0)
-        )
+        #tb = cursor.execute('SELECT * from interact;')
+        #cols = next(zip(*tb.description))
+        #print(cols)
+        #cursor.execute('''INSERT OR IGNORE INTO interact(?,?,?,?)
+        #                  VALUES(?,?,?,?);''', (cols[0],cols[1],cols[2],cols[3],'time',0,0,0)
+        #)
         db.commit()
 
         #gets group data, puts group members in users table
@@ -139,8 +139,8 @@ class MessagesCollector():
             continue_to = cursor.fetchone()
             #print(continue_to)
             print("uncomment this when done testing, line 139 ish")
-            #ending_message = continue_to[0]
-            ending_message = 1584719536 
+            ending_message = continue_to[0]
+            #ending_message = 1584719536 
         else:
             cursor.execute('''SELECT
                                 id,
