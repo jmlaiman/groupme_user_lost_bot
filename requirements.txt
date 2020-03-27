@@ -1,2 +1,7 @@
-schedule
-requests
+certifi==2019.11.28
+chardet==3.0.4
+idna==2.9
+pkg-resources==0.0.0
+requests==2.23.0
+schedule==0.6.0
+urllib3==1.25.8
