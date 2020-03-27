@@ -74,10 +74,14 @@ class MessagesCollector():
                         REFERENCES users(id)
                 )
             ''')
-
-        #this line can probably be removed
-        #cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         db.commit()
+        #cursor.execute('''
+        #        CREATE TABLE IF NOT EXISTS interact(
+        #            time TEXT PRIMARY KEY,
+        #            last_interact 
+        #        )
+        #''')
+        #db.commit()
 
 
         #gets group data, puts group members in users table
@@ -191,11 +195,9 @@ class MessagesCollector():
         return_string += "Total messages: " + str(currentgroup['messages']['count']) + "\n"
         return_string += "Date created: " + str(datetime.datetime.utcfromtimestamp(currentgroup['created_at']).strftime('%m-%d-%Y | %H:%M:%S UTC')) + "\n"
         try:
-            return_string += "Created by: " + self.string_name(currentgroup['creator_user_id']) + "\n"
+            return_string += "Created by: " + str(currentgroup['creator_user_id']) + "\n"
         except:
             return_string += "Created by: UNAVAILABLE ON INITIAL BUILD" + "\n"
-        return_string += "Min likes for !image: " + str(self.like_threshold) + "\n" 
-        return_string += "Min likes for year !image: " + str(self.year_like_threshold) + "\n"
         return return_string
 
     def get_total_messages(self):
@@ -277,146 +279,4 @@ class MessagesCollector():
         db.close()
         self.logger.info('Nicknames updated..')
 
-    #sets can_randimage in the database to 1 for all users, related to limiting 1 image per day per user
-    def can_randimg_reset(self):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-        self.logger.info('m_c resetting can image')
-        cursor.execute("UPDATE users SET can_randimage=1;")
-        db.commit()
-        db.close()
-        self.logger.info('Random image usage reset..')
 
-    #querys the database for the likes for a specified user, returns the likes message string
-    def get_likes_message(self,senderid):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-        
-        cursor.execute("SELECT name,likes,self_likes,rank FROM users WHERE id = ?;", (senderid,))
-        u = cursor.fetchone()
-
-        db.close()
-        return "Like stats for: " + u[0] + "\nLikes: " + str(u[1]) + "\nSelf Likes: " + str(u[2]) + "\nRank: " + str(u[3])
-
-    #querys the database for users in order of like rank, returns a string of the top 12
-    def get_rank_message(self):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-        
-        returnString = ""
-        for u in cursor.execute("SELECT rank,name,likes FROM users ORDER BY rank ASC LIMIT 12"):
-            returnString += str(u[0]) + ". " + str(u[1]) + " : " + str(u[2]) + "\n"
-        
-        db.close()
-        return returnString
-
-    #querys the database for a users kick stats, returns string 
-    def get_kicks_message(self,senderid):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-
-        cursor.execute("SELECT name,times_kicked,times_kicker FROM users WHERE id = ?;", (senderid,))
-        u = cursor.fetchone()
-
-        db.close()
-        return "Kick stats for: " + str(u[0]) + "\nKicked: " + str(u[1]) + "\nKicked Others: " + str(u[2])
-    
-    #returns a users nickname as a string from their user id
-    def string_name(self,senderid):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-        
-        cursor.execute("SELECT name FROM users WHERE id=?;",(senderid,))
-        u = cursor.fetchone()
-
-        db.close()
-        return u[0]
-
-    #returns boolean based on can_randimage for a user in the database, related to limiting image daily
-    #returns true if user has no used !image on that day
-    def allowed_to_send(self,senderid):
-        if self.image_disabled:
-            self.logger.info('Image function is disabled in the config file.')
-            return False
-        if self.limit_image:
-            db = sqlite3.connect(self.dbpath)
-            cursor = db.cursor()
-
-            cursor.execute("SELECT can_randimage FROM users WHERE id = ?;", (senderid,))
-            u = cursor.fetchone()
-            db.close()
-            if u[0] == 1:
-                return True
-            else:
-                self.logger.info('User has already used their daily image.')
-                return False
-        else:
-            return True
-
-    #gets a image or video url from a previously posted message at random
-    #returns tuple of (attachment, message text, message sender)
-    def get_media_attachment(self,senderid):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-
-
-        cursor.execute("SELECT attachments,text,sender_id FROM messages WHERE has_image=1 AND favorites>? AND is_bot=0 ORDER BY Random();",(self.like_threshold,))
-        m = cursor.fetchone()
-        attachments = ast.literal_eval(m[0])
-        print(m[2])
-        for a in attachments:
-            self.logger.info(a)
-            if a['type'] == "image":
-                cursor.execute("UPDATE users SET can_randimage=0 WHERE id=?;",(senderid,))
-                db.commit()
-                db.close()
-                return (a,m[1],self.string_name(m[2]))
-            elif a['type'] == "video":
-                cursor.execute("UPDATE users SET can_randimage=0 WHERE id=?;",(senderid,))
-                db.commit()
-                db.close()
-                return (a,m[1],self.string_name(m[2]))
-
-    #gets a image or video url from a previously posted message of a certian year at random
-    #returns tuple of (attachment, message text, message sender)
-    def get_range_media_attachment(self,senderid,year):
-        db = sqlite3.connect(self.dbpath)
-        cursor = db.cursor()
-
-        #determines d1(min date) and d2(max date) for the message
-        d1=datetime.date(int(year),1,1)
-        d2=datetime.date(int(year)+1,1,1)
-        #converts to unix timestamp
-        d1u = time.mktime(d1.timetuple())
-        d2u = time.mktime(d2.timetuple())
-
-        cursor.execute("SELECT attachments,text,sender_id FROM messages WHERE has_image=1 AND is_bot=0 AND created_at>? AND created_at<? AND favorites>? ORDER BY Random();",(d1u,d2u,self.year_like_threshold,))
-        temp = cursor.fetchone()
-
-        #if nothing is found for the requested year, a random image is returned without the year constraint
-        if temp is None:
-            db.close()
-            self.logger.info('Invalid year, sending message without specified year.')
-            return self.get_media_attachment(senderid)
-        else:
-            #return the image or video, could be changed to or statement
-            attachments = ast.literal_eval(temp[0])
-            for a in attachments:
-                self.logger.info(str(a))
-
-                if a['type'] == "image":
-                    cursor.execute("UPDATE users SET can_randimage=0 WHERE id=?;",(senderid,))
-                    db.commit()
-                    db.close()
-
-                    return (a,temp[1],self.string_name(temp[2]))
-                elif a['type'] == "video":
-                    cursor.execute("UPDATE users SET can_randimage=0 WHERE id=?;",(senderid,))
-                    db.commit()
-                    db.close()
-                    return (a,temp[1],self.string_name(temp[2]))
-        
-        
-                    
-                
-            

@@ -30,6 +30,7 @@ class CheckBot():
         self.messages_collection = MessagesCollector()
 
         self.logger.info("Bot initialized; bot_id=%s", bot_id)
+        self.messages_collection.get_messages(self.refresh_days)
 
     #related to logging
     def _attach_debug_handler(self):
@@ -63,7 +64,7 @@ def schduled_tasks():
     #bot.birthday_time()
      
     #schedule.every(5).minutes.do(run_threaded,bot.check_interact)
-    schedule.every().minute.do(run_threaded,bot.check_interact)
+    #schedule.every().minute.do(run_threaded,bot.check_interact)
     schedule.every().hour.do(run_threaded,bot.refresh_data_files)
 
     while 1:

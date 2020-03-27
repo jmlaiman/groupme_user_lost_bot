@@ -19,5 +19,3 @@ extbot.initialize(
 
 refreshthread = Thread(target=extbot.schduled_tasks)
 refreshthread.start()
-
-extbot.listen(port=config['listening_port']) #blocking call

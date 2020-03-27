@@ -88,72 +88,8 @@ class ExtBot():
         self.messages_collection.get_likes()
         self.messages_collection.get_kicks()
 
-    #resets can_randimg in the database for each user, related to limit random image in config
-    def reset_media_usage(self):
-        self.logger.info('Resetting random image..')
-        self.messages_collection.can_randimg_reset()
-
-
     def send_group_info(self,m,a,s,text):
         self.send_message(self.messages_collection.get_group_info_message())
-
-    #ask message collector for like stats for a user, the send them
-    def send_user_likes(self,m,a,s,text):
-        #if no one is tagged, get likes for sending user, otherwise get tagged user
-        if a != []:
-            rankstring = self.messages_collection.get_likes_message(a[0]['user_ids'][0])
-        else:
-            rankstring = self.messages_collection.get_likes_message(s)
-        self.send_message(rankstring)
-    
-    #ask messages collector for top 12 users, then send
-    def send_user_likesrank(self,m,a,s,text):
-        self.send_message(self.messages_collection.get_rank_message())
-
-    #ask messages collector for kick stats for a user, then send them
-    def send_user_kicks(self,m,a,s,text):
-        #if no one is tagged, get likes for sending user, otherwise get tagged user
-        if a != []:
-            rankstring = self.messages_collection.get_kicks_message(a[0]['user_ids'][0])
-        else:
-            rankstring = self.messages_collection.get_kicks_message(s)
-        self.send_message(rankstring)
-
-    #asks messages collector for a random image, then send the media
-    def send_random_image(self,m,a,s,text):
-        self.logger.info('Sending random image')
-
-        if self.messages_collection.allowed_to_send(s):
-            spaces = text.split()
-            #if the messages is only one word long "!image", select from all images; if two words "!image 2015", select random image from that year
-            if len(spaces) == 1:
-                self.logger.info('Querying from all images')
-                rand_media = self.messages_collection.get_media_attachment(s)
-                print(rand_media)
-                return_string = str(rand_media[2]) + " : " + (rand_media[1] if rand_media[1] else "")
-                self.send_media(rand_media[0],return_string)
-            elif len(spaces) == 2:
-                try:
-                    self.logger.info('Querying image from a year')
-                    rand_media = self.messages_collection.get_range_media_attachment(s,int(spaces[1]))
-                    print(rand_media)
-                    return_string = str(rand_media[2]) + " : " + (rand_media[1] if rand_media[1] else "")
-                    self.send_media(rand_media[0],return_string)
-                except ValueError:
-                    return
-
-    def handle_help_request(self, m, a,s,text):
-        help_message = 'Bot Commands\n'
-        help_message += '!image for a random image\n'
-        help_message += '!image [year] random image from a specified year\n'
-        help_message += '!likes show your total likes\n'
-        help_message += '!likes [tag] show total likes for a specified user\n'
-        help_message += '!rank show top 10 users in likes\n'
-        help_message += '!kicks show your total kick stats\n'
-        help_message += '!kicks [tag] show kick stats for a specified user\n'
-        help_message += '!info show various info for this group\n'
-
-        self.send_message(help_message)
 
     def send_message(self, message):
         logmessage = message
@@ -198,7 +134,6 @@ def schduled_tasks():
     #bot.birthday_time()
     
     schedule.every().hour.do(run_threaded,bot.refresh_data_files)
-    schedule.every().day.at("23:59").do(run_threaded,bot.reset_media_usage)
 
     while 1:
             schedule.run_pending()
